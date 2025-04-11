@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+</head>
+    <body>
+        <h1>Upload Image</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required>
+            <button type="submit">Upload</button>
+        </form>
+        <p id="message"></p>
+    </body>
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = e.target.querySelector('input[type="file"]');
+        const file = fileInput.files[0];
+    
+        if (!file) return;
+    
+        // 1. Ask the backend for a presigned URL
+        const presigned = await fetch(`/get-presigned-url?filename=${encodeURIComponent(file.name)}`).then(res => res.json());
+    
+        if (!presigned.url) {
+            document.getElementById('message').innerText = 'Failed to get upload URL';
+            return;
+        }
+    
+        // 2. Upload the file using PUT
+        const upload = await fetch(presigned.url, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'Content-Type': file.type
+            }
+        });
+    
+        if (upload.ok) {
+            document.getElementById('message').innerText = 'Upload successful!';
+            console.log('Uploaded to:', presigned.url.split('?')[0]);
+        } else {
+            document.getElementById('message').innerText = 'Upload failed';
+        }
+    });
+    </script>
+</html>
