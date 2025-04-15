@@ -13,37 +13,51 @@
         </form>
         <p id="message"></p>
     </body>
-<script>
-    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const fileInput = e.target.querySelector('input[type="file"]');
-        const file = fileInput.files[0];
-    
-        if (!file) return;
-    
-        // 1. Ask the backend for a presigned URL
-        const presigned = await fetch(`/get-presigned-url?filename=${encodeURIComponent(file.name)}`).then(res => res.json());
-    
-        if (!presigned.url) {
-            document.getElementById('message').innerText = 'Failed to get upload URL';
-            return;
-        }
-    
-        // 2. Upload the file using PUT
-        const upload = await fetch(presigned.url, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent the form from submitting normally
+
+            const fileInput = document.querySelector('input[type="file"]');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                document.getElementById('message').textContent = 'Please select a file to upload.';
+                return;
+            }
+
+            try {
+                // Step 1: Get the presigned URL from the backend
+                const response = await fetch(`/get-presigned-url?filename=${encodeURIComponent(file.name)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get presigned URL');
+                }   
+                
+
+                const { signedURL, key } = await response.json();
+                //const { key } = await response.json();
+                console.log(response);
+                console.log("presigned signedURL:" + signedURL);
+                console.log("key:" + key);
+
+                // Step 2: Upload the file to the presigned signedURL
+                const uploadResponse = await fetch(signedURL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': file.type // Use the file's MIME type
+                    },
+                    body: file
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload the file');
+                }
+
+                // Step 3: Display success message
+                document.getElementById('message').textContent = 'File uploaded successfully!';
+            } catch (error) {
+                // Handle errors
+                document.getElementById('message').textContent = `Error: ${error.message}`;
             }
         });
-    
-        if (upload.ok) {
-            document.getElementById('message').innerText = 'Upload successful!';
-            console.log('Uploaded to:', presigned.url.split('?')[0]);
-        } else {
-            document.getElementById('message').innerText = 'Upload failed';
-        }
-    });
     </script>
 </html>

@@ -1,4 +1,6 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsCommand, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID, sign } from "crypto";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs";
 
 const s3 = new S3Client({
@@ -11,17 +13,52 @@ const s3 = new S3Client({
     forcePathStyle: true
 });
 
-const command = new PutObjectCommand({
+
+export const getUploadPresignedURL = async (bucketName, filename) => {
+    const prefix = randomUUID();
+    const key = `${prefix}-${filename}`;
+    const getPutSignedURLCommand = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+        ContentType: "image/*"
+    });
+
+    const signedURL = await getSignedUrl(s3, getPutSignedURLCommand, { expiresIn: 3000 });
+    const result = {
+        key,
+        signedURL
+    }
+    return {signedURL, key};
+}
+
+const getPutSignedURLCommand = new PutObjectCommand({
     Bucket: "test-bucket",
     Key: "3gER9rs.jpg",
-    Body: fs.readFileSync("./3gER9rs.jpg"),
     ContentType: "image/jpeg"
 });
 
-s3.send(command)
-    .then((response) => {
-        console.log("Image uploaded successfully:", response);
-    })
-    .catch((error) => {
-        console.error("Error uploading image:", error);
-    });
+const getGetSignedURLCommand = new GetObjectCommand({
+    Bucket: "test-bucket",
+    Key: "3gER9rs.jpg"
+})
+
+
+
+
+
+
+
+const command = new PutObjectCommand({
+    Bucket: "test-bucket",
+    Key: "test3.png",
+    Body: fs.readFileSync("./test3.jpg"),
+    ContentType: "image/*",
+    
+});
+
+await s3.send(command);
+
+const listObjectCommand = new ListObjectsV2Command({
+    Bucket: "test-bucket"
+});
+
