@@ -38,12 +38,13 @@
                 console.log(response);
                 console.log("presigned signedURL:" + signedURL);
                 console.log("key:" + key);
-
+                console.log(file.type);
+                console.log(new Blob([file]).size);
                 // Step 2: Upload the file to the presigned signedURL
                 const uploadResponse = await fetch(signedURL, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': file.type // Use the file's MIME type
+                        'Content-Length': new Blob([file]).size
                     },
                     body: file
                 });
